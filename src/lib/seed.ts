@@ -93,14 +93,14 @@ const DESC: Record<string, { d: string[]; r: string[]; b: string[] }> = {
 type J = [string, string, string, string, string, string, string, number, number, number, number, JobStatus?];
 // [id, tiêu đề, công ty, ngành, địa điểm, hình thức, cấp bậc, lương min, lương max, đăng cách đây (ngày), hạn nộp sau (ngày), trạng thái]
 const L: J[] = [
-  ["j01", "Lập trình viên React (Frontend)", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Toàn thời gian", "Chuyên viên", 20, 35, 1, 28],
-  ["j02", "Kỹ sư Backend Node.js", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Toàn thời gian", "Chuyên viên", 25, 40, 2, 25],
-  ["j03", "Chuyên viên kiểm thử phần mềm (QA)", "c-saomai", "Công nghệ thông tin", "Làm việc từ xa", "Toàn thời gian", "Nhân viên", 15, 25, 4, 30],
-  ["j04", "Thực tập sinh phát triển ứng dụng di động", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Thực tập", "Thực tập sinh", 4, 6, 6, 40],
+  ["j01", "Lập trình viên React (Frontend)", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Toàn thời gian", "Chuyên viên", 20, 35, 30, 28],
+  ["j02", "Kỹ sư Backend Node.js", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Toàn thời gian", "Chuyên viên", 25, 40, 38, 25],
+  ["j03", "Chuyên viên kiểm thử phần mềm (QA)", "c-saomai", "Công nghệ thông tin", "Làm việc từ xa", "Toàn thời gian", "Nhân viên", 15, 25, 33, 30],
+  ["j04", "Thực tập sinh phát triển ứng dụng di động", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Thực tập", "Thực tập sinh", 4, 6, 44, 40],
   ["j05", "Trưởng nhóm sản phẩm số", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Toàn thời gian", "Trưởng nhóm", 45, 70, 9, 20, "pending"],
   ["j06", "Chuyên viên phân tích dữ liệu", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Toàn thời gian", "Chuyên viên", 22, 32, 12, 35, "draft"],
   ["j07", "Nhân viên hỗ trợ khách hàng kỹ thuật", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Bán thời gian", "Nhân viên", 8, 12, 15, 12, "rejected"],
-  ["j08", "Quản trị hệ thống (DevOps)", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Toàn thời gian", "Chuyên viên", 30, 50, 40, -5, "closed"],
+  ["j08", "Quản trị hệ thống (DevOps)", "c-saomai", "Công nghệ thông tin", "Hà Nội", "Toàn thời gian", "Chuyên viên", 30, 50, 75, -5, "closed"],
   ["j09", "Giám sát kinh doanh khu vực miền Nam", "c-luavang", "Kinh doanh – Bán hàng", "TP. Hồ Chí Minh", "Toàn thời gian", "Quản lý", 25, 40, 1, 21],
   ["j10", "Kỹ sư quản lý chất lượng (QA/QC)", "c-luavang", "Sản xuất – Kỹ thuật", "Bình Dương", "Toàn thời gian", "Chuyên viên", 15, 22, 3, 30],
   ["j11", "Công nhân vận hành máy đóng gói", "c-luavang", "Sản xuất – Kỹ thuật", "Bình Dương", "Hợp đồng thời vụ", "Nhân viên", 9, 13, 5, 18],
@@ -231,10 +231,10 @@ const EXTRA: [string, string, string, string[]][] = [
   ["Trương Hải Đăng", "Software Engineer", "Hà Nội", ["Go", "PostgreSQL"]], ["Ninh Diệu Hương", "QA Lead", "Hà Nội", ["Kiểm thử", "Selenium"]], ["Âu Gia Bình", "Thực tập sinh", "Hà Nội", ["Flutter"]],
 ];
 export const seedExtraApplications = (): Application[] => EXTRA.flatMap(([name, headline, location, skills], i) => {
-  const jobs = ["j01", "j02", "j03", "j04", "j08", "j01", "j02", "j03"];
+  const jobs = ["j01", "j02", "j03", "j04", "j08", "j01", "j02", "j03"]; const AGE: Record<string, number> = { j01: 30, j02: 38, j03: 33, j04: 44, j08: 75 };
   const n = i % 3 === 0 ? 2 : 1;
   return Array.from({ length: n }, (_, k) => {
-    const jobId = jobs[(i + k * 3) % jobs.length]; const ago = 2 + ((i * 7 + k * 11) % 56);
+    const jobId = jobs[(i + k * 3) % jobs.length]; const ago = Math.min(2 + ((i * 7 + k * 11) % 56), AGE[jobId] - 2); // không sớm hơn ngày đăng tin
     const st: Application["status"] = ago > 40 ? "closed" : ago > 24 ? (i % 2 ? "interview" : "reviewing") : ago > 8 ? (i % 3 ? "reviewing" : "new") : "new";
     return mk(`ax${i}-${k}`, jobId, `xc${i}`, name, `${name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/\s+/g, ".")}@mail.example`, headline, ago, st, 1 + (i % 6), skills, location);
   });

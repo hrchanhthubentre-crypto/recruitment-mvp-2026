@@ -17,7 +17,7 @@ export default function CompanyDetail() {
     <div>
       <section>
         <div className="relative h-44 sm:h-56"><BannerArt tone={co.banner ?? co.tone} seed={co.id} /></div>
-        <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
           <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end">
             <CompanyLogo name={co.name} tone={co.tone} size={104} className="border-4 border-cream shadow-pop" />
             <div className="pb-1 sm:pb-3"><nav aria-label="Breadcrumb" className="mb-1 flex items-center gap-1.5 text-sm text-ink-soft"><Link to="/cong-ty" className="hover:text-ink">Công ty</Link><ChevronRight className="h-3.5 w-3.5" /><span className="truncate">{co.name}</span></nav>
