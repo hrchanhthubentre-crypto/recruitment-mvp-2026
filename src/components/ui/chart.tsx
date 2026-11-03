@@ -28,7 +28,7 @@ export function BarChart({ data, color = "#f4ce73", unit, label }: { data: P[]; 
             {i % every === 0 && <text x={x + bw / 2} y={H - 8} textAnchor="middle" fontSize="11" fill="#6b7079">{d.label}</text>}
           </g>); })}
       </Frame>
-      {hi !== null && <Tip left={((L + hi * bw + bw / 2) / W) * 100} text={`${data[hi].label}: ${data[hi].value} ${unit}`} />}
+      {hi !== null && data[hi] && <Tip left={((L + hi * bw + bw / 2) / W) * 100} text={`${data[hi].label}: ${data[hi].value} ${unit}`} />}
     </div>
   );
 }
@@ -50,7 +50,7 @@ export function LineChart({ data, color = "#30343b", fill = "#f4ce73", unit, lab
             {i % every === 0 && <text x={x} y={H - 8} textAnchor="middle" fontSize="11" fill="#6b7079">{d.label}</text>}
           </g>); })}
       </Frame>
-      {hi !== null && <Tip left={((L + hi * step) / W) * 100} text={`${data[hi].label}: ${data[hi].value} ${unit}`} />}
+      {hi !== null && data[hi] && <Tip left={((L + hi * step) / W) * 100} text={`${data[hi].label}: ${data[hi].value} ${unit}`} />}
     </div>
   );
 }
