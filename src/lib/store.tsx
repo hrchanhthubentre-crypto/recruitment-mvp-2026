@@ -219,5 +219,5 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   return <C.Provider value={value}>{children}</C.Provider>;
 }
 
-export const roleHome: Record<Role, string> = { guest: "/", candidate: "/ung-vien/ho-so", employer: "/nha-tuyen-dung", admin: "/quan-tri/kiem-duyet" };
+export const roleHome: Record<Role, string> = { guest: "/", candidate: "/ung-vien", employer: "/nha-tuyen-dung", admin: "/quan-tri" };
 export const roleLabel: Record<Role, string> = { guest: "Khách", candidate: "Ứng viên", employer: "Nhà tuyển dụng", admin: "Quản trị viên" };
