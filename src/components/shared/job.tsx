@@ -1,4 +1,4 @@
-import { Bookmark, BriefcaseBusiness, CalendarClock, Clock, MapPin, Wallet } from "lucide-react";
+import { Bookmark, BriefcaseBusiness, CalendarClock, Clock, MapPin, Sparkles, Wallet } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,7 @@ import { cn, daysLeft, fmtDate, relTime, salaryText } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import type { Company, Job } from "@/lib/types";
 import { Badge, CompanyLogo } from "./common";
+import { isFeatured } from "@/lib/stats";
 
 /** Hành vi lưu tin dùng chung — khách được nhắc đăng nhập, vai trò khác được báo rõ. */
 export function useSave() {
@@ -39,9 +40,10 @@ export function JobCard({ job, company, compact }: { job: Job; company?: Company
   const dl = daysLeft(job.deadline);
   return (
     <article className="group relative flex gap-4 rounded-card border border-line bg-paper p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:border-gold hover:shadow-pop sm:p-5">
-      <CompanyLogo name={company?.name ?? "?"} tone={company?.tone} size={compact ? 44 : 52} />
+      <CompanyLogo name={company?.name ?? "?"} tone={company?.tone} size={compact ? 48 : 60} className="shadow-sm" />
       <div className="min-w-0 flex-1">
-        <h3 className="pr-12 text-base font-semibold leading-snug">
+        <div className="flex flex-wrap items-center gap-2 pr-12">{isFeatured(job) && <span className="inline-flex items-center gap-1 rounded-full bg-gold px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide"><Sparkles className="h-3 w-3" />Nổi bật</span>}<span className="text-xs text-ink-mute">{relTime(job.postedAt)}</span></div>
+        <h3 className="mt-1 pr-12 text-base font-semibold leading-snug sm:text-[17px]">
           <Link to={`/viec-lam/${job.id}`} className="after:absolute after:inset-0 after:content-[''] group-hover:text-gold-ink focus-visible:after:rounded-card">{job.title}</Link>
         </h3>
         <p className="mt-0.5 truncate text-sm text-ink-soft">{company?.name}</p>
@@ -51,12 +53,24 @@ export function JobCard({ job, company, compact }: { job: Job; company?: Company
           {!compact && <Meta icon={<BriefcaseBusiness />}>{job.experience}</Meta>}
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Badge tone="gold">{job.type}</Badge>
+          <Badge tone="gold">{job.type}</Badge>{!compact && <Badge>{job.level}</Badge>}
           {dl >= 0 && dl <= 7 && <Badge tone="bad"><Clock className="h-3 w-3" />Còn {dl} ngày</Badge>}
-          <span className="text-xs text-ink-mute">{relTime(job.postedAt)}</span>
         </div>
       </div>
       <div className="absolute right-3 top-3 z-10 sm:right-4 sm:top-4"><SaveButton jobId={job.id} /></div>
+    </article>
+  );
+}
+
+/** Thẻ dọc dùng cho lưới “Việc làm nổi bật”. */
+export function JobTile({ job, company }: { job: Job; company?: Company }) {
+  return (
+    <article className="group relative flex flex-col rounded-card border border-line bg-paper p-5 shadow-soft transition-all hover:-translate-y-1 hover:border-gold hover:shadow-pop">
+      <div className="flex items-start justify-between"><CompanyLogo name={company?.name ?? "?"} tone={company?.tone} size={52} /><SaveButton jobId={job.id} className="relative z-10" /></div>
+      <h3 className="mt-4 text-base font-semibold leading-snug"><Link to={`/viec-lam/${job.id}`} className="after:absolute after:inset-0 after:content-[''] group-hover:text-gold-ink">{job.title}</Link></h3>
+      <p className="mt-1 truncate text-sm text-ink-soft">{company?.name}</p>
+      <div className="mt-4 flex flex-wrap gap-2"><Badge tone="gold">{job.type}</Badge><Badge>{job.experience}</Badge></div>
+      <div className="mt-5 flex items-end justify-between border-t border-line-soft pt-4"><span className="text-[15px] font-bold">{salaryText(job.salaryMin, job.salaryMax)}</span><span className="inline-flex items-center gap-1 text-[13px] text-ink-mute"><MapPin className="h-3.5 w-3.5" />{job.location}</span></div>
     </article>
   );
 }

@@ -1,4 +1,4 @@
-import { SlidersHorizontal, Search, X, SearchX } from "lucide-react";
+import { MapPin, SlidersHorizontal, Search, X, SearchX } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ export default function Jobs() {
     return r;
   }, [jobs, companies, sp]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const live = jobs.filter((j) => j.status === "approved" && companies.find((c) => c.id === j.companyId)?.status === "approved");
   const per = settings.perPage; const pages = Math.max(1, Math.ceil(list.length / per));
   const page = Math.min(Math.max(1, Number(g("page")) || 1), pages);
   const shown = list.slice((page - 1) * per, page * per);
@@ -64,15 +65,26 @@ export default function Jobs() {
   );
 
   return (
+    <div>
+      <div className="bg-butter">
+        <div className="mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 sm:pb-10 sm:pt-10">
+          <h1 className="text-2xl font-bold sm:text-4xl">Tìm việc làm</h1>
+          <p className="mt-1.5 text-ink-soft">{live.length} vị trí đang mở từ các doanh nghiệp đã được xác minh.</p>
+          <form role="search" onSubmit={(e) => { e.preventDefault(); set({ q: kw.trim() }); }} className="mt-5 grid gap-2 rounded-2xl bg-paper p-2.5 shadow-pop sm:grid-cols-[1fr_220px_auto]">
+            <label className="relative block"><span className="sr-only">Từ khóa</span><Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-mute" aria-hidden />
+              <Input value={kw} onChange={(e) => setKw(e.target.value)} placeholder="Chức danh, kỹ năng hoặc công ty" className="h-12 border-transparent bg-cream pl-11" /></label>
+            <label className="relative block"><span className="sr-only">Địa điểm</span><MapPin className="pointer-events-none absolute left-3.5 top-1/2 z-10 h-5 w-5 -translate-y-1/2 text-ink-mute" aria-hidden />
+              <Select value={g("loc")} onChange={(e) => set({ loc: e.target.value })} className="h-12 border-transparent bg-cream pl-11"><option value="">Mọi địa điểm</option>{catalogs.locations.filter((l) => l.active).map((l) => <option key={l.id}>{l.name}</option>)}</Select></label>
+            <Button type="submit" size="lg" className="h-12">Tìm kiếm</Button>
+          </form>
+          <div className="no-scrollbar -mx-1 mt-4 flex gap-2 overflow-x-auto px-1 pb-1" role="group" aria-label="Lọc nhanh theo ngành">
+            <button onClick={() => set({ cat: "" })} aria-pressed={!g("cat")} className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold ${!g("cat") ? "bg-ink text-cream" : "bg-cream/80 hover:bg-paper"}`}>Tất cả</button>
+            {catalogs.categories.filter((c) => c.active).map((c) => <button key={c.id} onClick={() => set({ cat: c.name })} aria-pressed={g("cat") === c.name} className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold ${g("cat") === c.name ? "bg-ink text-cream" : "bg-cream/80 hover:bg-paper"}`}>{c.name}</button>)}
+          </div>
+        </div>
+      </div>
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-      <h1 className="text-2xl font-bold sm:text-3xl">Tìm việc làm</h1>
-      <form role="search" onSubmit={(e) => { e.preventDefault(); set({ q: kw.trim() }); }} className="mt-5 flex gap-2">
-        <label className="relative block flex-1"><span className="sr-only">Từ khóa</span><Search className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-mute" aria-hidden />
-          <Input value={kw} onChange={(e) => setKw(e.target.value)} placeholder="Chức danh, kỹ năng hoặc công ty" className="h-12 pl-11" /></label>
-        <Button type="submit" size="lg" className="h-12">Tìm kiếm</Button>
-      </form>
-
-      <div className="mt-8 grid gap-8 lg:grid-cols-[272px_minmax(0,1fr)]">
+      <div className="grid gap-8 lg:grid-cols-[272px_minmax(0,1fr)]">
         <aside className="hidden lg:block"><div className="sticky top-[120px] max-h-[calc(100vh-140px)] overflow-y-auto rounded-card border border-line bg-paper p-5 shadow-soft"><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">Bộ lọc</h2>{(active.length > 0) && <button onClick={() => set({ cat: "", loc: "", sal: "", exp: "", type: "" })} className="text-sm font-medium text-gold-ink hover:underline">Xóa lọc</button>}</div>{Filters}</div></aside>
 
         <section aria-live="polite">
@@ -100,6 +112,7 @@ export default function Jobs() {
 
       <Drawer open={drawer} onOpenChange={setDrawer} title="Bộ lọc việc làm" width="max-w-sm"
         footer={<><Button variant="outline" onClick={() => set({ cat: "", loc: "", sal: "", exp: "", type: "" })}>Xóa lọc</Button><Button onClick={() => setDrawer(false)}>Xem {list.length} kết quả</Button></>}>{Filters}</Drawer>
+    </div>
     </div>
   );
 }

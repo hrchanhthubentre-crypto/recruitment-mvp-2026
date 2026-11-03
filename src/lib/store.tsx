@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Activity, AppStatus, Application, CatalogItem, CatalogKey, Catalogs, Company, Job, JobStatus, ModLog, Profile, Role, Settings, User } from "./types";
-import { blankProfile, DEMO, seedActivity, seedApplications, seedCatalogs, seedCompanies, seedJobs, seedModLog, seedProfile, seedSettings, seedUsers } from "./seed";
+import type { Activity, AppStatus, Application, CatalogItem, CatalogKey, Catalogs, Company, Job, JobStatus, ModLog, Notification, Prefs, Profile, Report, Role, Settings, User } from "./types";
+import { blankProfile, DEMO, defaultPrefs, seedExtraApplications, seedNotifications, seedReports, seedActivity, seedApplications, seedCatalogs, seedCompanies, seedJobs, seedModLog, seedProfile, seedSettings, seedUsers } from "./seed";
 import { daysFromNow, uid } from "./utils";
 
 /**
@@ -12,15 +12,18 @@ interface Data {
   users: User[]; companies: Company[]; jobs: Job[]; applications: Application[];
   profiles: Record<string, Profile>; saved: Record<string, string[]>;
   catalogs: Catalogs; settings: Settings; activity: Activity[]; modLog: ModLog[];
+  notifications: Notification[]; reports: Report[]; prefs: Record<string, Prefs>; version: number;
 }
+const VERSION = 2;
 const KEY = "nangviec.preview.v1";
 const fresh = (): Data => ({
-  userId: null, users: seedUsers(), companies: seedCompanies(), jobs: seedJobs(), applications: seedApplications(),
+  userId: null, users: seedUsers(), companies: seedCompanies(), jobs: seedJobs(), applications: [...seedApplications(), ...seedExtraApplications()],
   profiles: { "u-cand": seedProfile() }, saved: { "u-cand": ["j09", "j24", "j35", "j26"] },
   catalogs: seedCatalogs(), settings: seedSettings(), activity: seedActivity(), modLog: seedModLog(),
+  notifications: seedNotifications(), reports: seedReports(), prefs: {}, version: VERSION,
 });
 const load = (): Data => {
-  try { const raw = localStorage.getItem(KEY); if (raw) return { ...fresh(), ...JSON.parse(raw) }; } catch { /* localStorage có thể bị chặn */ }
+  try { const raw = localStorage.getItem(KEY); if (raw) { const o = JSON.parse(raw); /* Nâng cấp schema UI 2.0: dữ liệu mẫu cũ được đặt lại một lần có kiểm soát */ if (o.version === VERSION) return { ...fresh(), ...o }; } } catch { /* localStorage có thể bị chặn */ }
   return fresh();
 };
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -47,6 +50,11 @@ interface Ctx extends Data {
   catalogSave: (key: CatalogKey, item: CatalogItem, prevName?: string) => Promise<void>;
   catalogToggle: (key: CatalogKey, id: string) => Promise<void>;
   updateSettings: (patch: Partial<Settings>) => Promise<void>;
+  prefsOf: Prefs; savePrefs: (p: Prefs) => Promise<void>; myNotifications: Notification[];
+  markRead: (id: string, read?: boolean) => void; markAllRead: () => void;
+  updateAccount: (p: { name: string; phone: string }) => Promise<void>;
+  addReport: (r: { targetType: "job" | "user"; targetId: string; targetLabel: string; reason: string; detail: string }) => Promise<void>;
+  resolveReport: (id: string, status: "resolved" | "dismissed", resolution: string, hideJob?: boolean) => Promise<void>;
 }
 const C = createContext<Ctx | null>(null);
 export const useStore = () => { const c = useContext(C); if (!c) throw new Error("StoreProvider missing"); return c; };
@@ -118,7 +126,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const pr = s0.profiles[user.id] ?? blankProfile(user.name, user.email); const job = s0.jobs.find((j) => j.id === jobId)!;
       const a: Application = { id: uid("a"), jobId, candidateId: user.id, name: pr.fullName || user.name, email: pr.email, phone: p.phone, headline: pr.desiredTitle || pr.experiences[0]?.title || "Ứng viên",
         appliedAt: today(), status: "new", note: "", cvName: p.cvName, cover: p.cover, skills: pr.skills, years: Math.max(0, pr.experiences.length), location: pr.city, timeline: [{ at: today(), text: "Hồ sơ được gửi" }] };
-      set((s) => ({ applications: [a, ...s.applications], activity: job.companyId === "c-saomai" ? log(s, `Ứng viên ${a.name} vừa ứng tuyển vị trí ${job.title}`, "apply") : s.activity }));
+      const cname = s0.companies.find((c) => c.id === job.companyId)?.name;
+      set((s) => ({ applications: [a, ...s.applications], activity: job.companyId === "c-saomai" ? log(s, `Ứng viên ${a.name} vừa ứng tuyển vị trí ${job.title}`, "apply") : s.activity,
+        notifications: [{ id: uid("n"), userId: user.id, at: today(), kind: "apply" as const, read: false, title: "Đã gửi hồ sơ thành công", body: `Hồ sơ vị trí ${job.title} đã được gửi tới ${cname} (mô phỏng).` }, ...s.notifications] }));
     },
     saveProfile: async (patch) => {
       await run(600); if (!user) return;
@@ -143,7 +153,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setAppStatus: async (id, st) => {
       await run(450);
       const labels: Record<AppStatus, string> = { new: "Mới nhận", reviewing: "Đang xem xét", interview: "Mời phỏng vấn", closed: "Kết thúc quy trình" };
-      set((s) => ({ applications: s.applications.map((a) => (a.id === id ? { ...a, status: st, timeline: [...a.timeline, { at: today(), text: labels[st] }] } : a)) }));
+      set((s) => {
+        const app = s.applications.find((a) => a.id === id); const job = app && s.jobs.find((j) => j.id === app.jobId);
+        const notif = app && job && s.users.some((u) => u.id === app.candidateId) ? [{ id: uid("n"), userId: app.candidateId, at: today(), kind: "status" as const, read: false, title: `Trạng thái hồ sơ: ${labels[st]}`, body: `Hồ sơ vị trí ${job.title} đã chuyển sang “${labels[st]}”.` }] : [];
+        return { applications: s.applications.map((a) => (a.id === id ? { ...a, status: st, timeline: [...a.timeline, { at: today(), text: labels[st] }] } : a)), notifications: [...notif, ...s.notifications] };
+      });
     },
     setAppNote: async (id, note) => { await run(400); set((s) => ({ applications: s.applications.map((a) => (a.id === id ? { ...a, note } : a)) })); },
     moderate: async (jobId, action, reason) => {
@@ -179,6 +193,27 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     catalogToggle: async (key, id) => { await run(350); set((s) => ({ catalogs: { ...s.catalogs, [key]: s.catalogs[key].map((x) => (x.id === id ? { ...x, active: !x.active } : x)) } })); },
     updateSettings: async (patch) => { await run(400); set((s) => ({ settings: { ...s.settings, ...patch } })); },
+    prefsOf: user ? d.prefs[user.id] ?? defaultPrefs() : defaultPrefs(),
+    savePrefs: async (p) => { await run(450); if (user) set((s) => ({ prefs: { ...s.prefs, [user.id]: p } })); },
+    myNotifications: user ? d.notifications.filter((n) => n.userId === user.id).sort((a, b) => b.at.localeCompare(a.at)) : [],
+    markRead: (id, read = true) => set((s) => ({ notifications: s.notifications.map((n) => (n.id === id ? { ...n, read } : n)) })),
+    markAllRead: () => user && set((s) => ({ notifications: s.notifications.map((n) => (n.userId === user.id ? { ...n, read: true } : n)) })),
+    updateAccount: async ({ name, phone }) => {
+      await run(550); if (!user) return;
+      set((s) => ({ users: s.users.map((u) => (u.id === user.id ? { ...u, name, phone } : u)), profiles: s.profiles[user.id] ? { ...s.profiles, [user.id]: { ...s.profiles[user.id], fullName: name, phone } } : s.profiles }));
+    },
+    addReport: async (r) => {
+      await run(650);
+      set((s) => ({ reports: [{ id: uid("r"), ...r, reporter: user?.name ?? "Khách (ẩn danh)", at: today(), status: "open" }, ...s.reports] }));
+    },
+    resolveReport: async (id, status, resolution, hideJob) => {
+      await run(550);
+      set((s) => {
+        const r = s.reports.find((x) => x.id === id);
+        return { reports: s.reports.map((x) => (x.id === id ? { ...x, status, resolution } : x)),
+          jobs: hideJob && r?.targetType === "job" ? s.jobs.map((j) => (j.id === r.targetId ? { ...j, status: "hidden", hiddenReason: resolution } : j)) : s.jobs };
+      });
+    },
   }), [d, role, user, company, profile, savedIds, simulateError, run, set]);
 
   return <C.Provider value={value}>{children}</C.Provider>;

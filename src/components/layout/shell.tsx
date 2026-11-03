@@ -1,4 +1,4 @@
-import { Bookmark, Building2, ClipboardList, FileText, FolderCog, LayoutDashboard, ListChecks, LogOut, Menu as MenuIcon, ShieldCheck, Users, UserRound, FlaskConical, ChevronDown, Briefcase, Send, Lock } from "lucide-react";
+import { Bell, BarChart3, Bookmark, Building2, ClipboardList, FileText, FolderCog, LayoutDashboard, ListChecks, LogOut, Menu as MenuIcon, ShieldCheck, Users, UserRound, FlaskConical, ChevronDown, Briefcase, Send, Lock, Flag, Settings2, BadgeCheck } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -39,22 +39,28 @@ export function PreviewBar() {
   );
 }
 
-const areaNav: Record<Exclude<Role, "guest">, { to: string; label: string; icon: ReactNode; end?: boolean }[]> = {
+type NavItem = { to: string; label: string; icon: ReactNode; end?: boolean; match?: string[] };
+const areaNav: Record<Exclude<Role, "guest">, NavItem[]> = {
   candidate: [
+    { to: "/ung-vien", label: "Tổng quan", icon: <LayoutDashboard />, end: true },
     { to: "/ung-vien/ho-so", label: "Hồ sơ & CV", icon: <FileText /> },
     { to: "/ung-vien/da-luu", label: "Việc làm đã lưu", icon: <Bookmark /> },
     { to: "/ung-vien/da-ung-tuyen", label: "Đã ứng tuyển", icon: <Send /> },
+    { to: "/ung-vien/tai-khoan", label: "Tài khoản & thông báo", icon: <Bell /> },
   ],
   employer: [
     { to: "/nha-tuyen-dung", label: "Tổng quan", icon: <LayoutDashboard />, end: true },
     { to: "/nha-tuyen-dung/doanh-nghiep", label: "Hồ sơ doanh nghiệp", icon: <Building2 /> },
-    { to: "/nha-tuyen-dung/tin-tuyen-dung", label: "Tin tuyển dụng", icon: <ClipboardList /> },
-    { to: "/nha-tuyen-dung/ung-vien", label: "Quản lý ứng viên", icon: <Users /> },
+    { to: "/nha-tuyen-dung/tin-tuyen-dung", label: "Tin tuyển dụng", icon: <ClipboardList />, match: ["/nha-tuyen-dung/tin/"] },
+    { to: "/nha-tuyen-dung/ung-vien", label: "Ứng viên", icon: <Users /> },
+    { to: "/nha-tuyen-dung/bao-cao", label: "Báo cáo", icon: <BarChart3 /> },
   ],
   admin: [
+    { to: "/quan-tri", label: "Tổng quan", icon: <LayoutDashboard />, end: true },
     { to: "/quan-tri/kiem-duyet", label: "Kiểm duyệt tin", icon: <ShieldCheck /> },
-    { to: "/quan-tri/nguoi-dung", label: "Công ty & người dùng", icon: <Users /> },
-    { to: "/quan-tri/danh-muc", label: "Danh mục & cấu hình", icon: <FolderCog /> },
+    { to: "/quan-tri/doanh-nghiep", label: "Kiểm duyệt doanh nghiệp", icon: <BadgeCheck /> },
+    { to: "/quan-tri/nguoi-dung", label: "Người dùng & vi phạm", icon: <Flag /> },
+    { to: "/quan-tri/danh-muc", label: "Danh mục & cấu hình", icon: <Settings2 /> },
   ],
 };
 
@@ -79,18 +85,23 @@ function UserMenu() {
   );
 }
 
+function Bell24() {
+  const { myNotifications } = useStore(); const n = myNotifications.filter((x) => !x.read).length;
+  return <Link to="/ung-vien/tai-khoan?tab=notifications" aria-label={`Thông báo${n ? `, ${n} chưa đọc` : ""}`} className="relative grid h-10 w-10 place-items-center rounded-ctl border border-line bg-paper hover:border-gold"><Bell className="h-[18px] w-[18px]" />{n > 0 && <span className="absolute -right-1 -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-gold px-1 text-[11px] font-bold">{n}</span>}</Link>;
+}
+
 export function Header() {
   const { role } = useStore();
   const [open, setOpen] = useState(false);
   const nav = useNavigate(); const loc = useLocation();
-  const scrollHome = (id: string) => { setOpen(false); if (loc.pathname === "/") document.getElementById(id)?.scrollIntoView({ behavior: "smooth" }); else nav("/", { state: { scrollTo: id } }); };
-  const link = ({ isActive }: { isActive: boolean }) => cn("rounded-lg px-3.5 py-2 text-[15px] font-medium transition-colors hover:bg-butter", isActive && "bg-butter font-semibold");
+    const link = ({ isActive }: { isActive: boolean }) => cn("rounded-lg px-3.5 py-2 text-[15px] font-medium transition-colors hover:bg-butter", isActive && "bg-butter font-semibold");
   const links = (
     <>
       <NavLink to="/" end className={link} onClick={() => setOpen(false)}>Trang chủ</NavLink>
       <NavLink to="/viec-lam" className={link} onClick={() => setOpen(false)}>Việc làm</NavLink>
-      <button type="button" className={link({ isActive: false })} onClick={() => scrollHome("doanh-nghiep")}>Doanh nghiệp</button>
-      {role === "guest" && <NavLink to="/dang-nhap?tab=employer" className={link} onClick={() => setOpen(false)}>Dành cho nhà tuyển dụng</NavLink>}
+      <NavLink to="/cong-ty" className={link} onClick={() => setOpen(false)}>Công ty</NavLink>
+      <NavLink to="/cam-nang" className={link} onClick={() => setOpen(false)}>Cẩm nang</NavLink>
+      {role === "guest" && <NavLink to="/dang-ky?tab=employer" className={link} onClick={() => setOpen(false)}>Dành cho nhà tuyển dụng</NavLink>}
     </>
   );
   return (
@@ -102,15 +113,15 @@ export function Header() {
           {role === "guest" ? (
             <>
               <Button variant="ghost" size="sm" className="hidden sm:inline-flex" onClick={() => nav("/dang-nhap")}>Đăng nhập</Button>
-              <Button size="sm" onClick={() => nav("/dang-nhap?tab=candidate")}>Đăng ký</Button>
+              <Button size="sm" onClick={() => nav("/dang-ky")}>Đăng ký</Button>
             </>
-          ) : <UserMenu />}
+          ) : <>{role === "candidate" && <Bell24 />}<UserMenu /></>}
           <Button variant="outline" size="icon" className="lg:hidden" aria-label="Mở menu" onClick={() => setOpen(true)}><MenuIcon className="h-5 w-5" /></Button>
         </div>
       </div>
       <Drawer open={open} onOpenChange={setOpen} title="Menu" width="max-w-xs">
         <nav aria-label="Điều hướng di động" className="flex flex-col gap-1 [&>*]:justify-start [&>*]:text-left [&>*]:text-base [&>*]:py-3">{links}</nav>
-        {role === "guest" && <div className="mt-6 grid gap-2"><Button variant="outline" onClick={() => { setOpen(false); nav("/dang-nhap"); }}>Đăng nhập</Button><Button onClick={() => { setOpen(false); nav("/dang-nhap?tab=candidate"); }}>Đăng ký ứng viên</Button></div>}
+        {role === "guest" && <div className="mt-6 grid gap-2"><Button variant="outline" onClick={() => { setOpen(false); nav("/dang-nhap"); }}>Đăng nhập</Button><Button onClick={() => { setOpen(false); nav("/dang-ky"); }}>Đăng ký tài khoản</Button></div>}
       </Drawer>
     </header>
   );
@@ -118,23 +129,24 @@ export function Header() {
 
 export function Footer() {
   const { settings, catalogs } = useStore();
-  const cats = catalogs.categories.filter((c) => c.active).slice(0, 5);
+  const cats = catalogs.categories.filter((c) => c.active).slice(0, 5); const locs = catalogs.locations.filter((c) => c.active && c.name !== "Làm việc từ xa").slice(0, 5);
   const H = ({ children }: { children: ReactNode }) => <h4 className="mb-3 text-sm font-semibold text-cream">{children}</h4>;
   const L = ({ to, children }: { to: string; children: ReactNode }) => <li><Link to={to} className="inline-block py-1 text-sm text-cream/70 hover:text-gold">{children}</Link></li>;
   return (
     <footer className="mt-20 bg-ink text-cream">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]">
-        <div>
+      <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:grid-cols-2 sm:px-6 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr]">
+        <div className="sm:col-span-2 lg:col-span-1">
           <Logo onDark />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-cream/70">Việc tốt, đến sớm như nắng mai. Nền tảng kết nối ứng viên và doanh nghiệp trên toàn quốc.</p>
           <p className="mt-4 text-sm text-cream/70">Liên hệ: {settings.supportEmail}</p>
         </div>
-        <div><H>Dành cho ứng viên</H><ul><L to="/viec-lam">Tìm việc làm</L><L to="/dang-nhap?tab=candidate">Đăng ký ứng viên</L><L to="/dang-nhap">Đăng nhập</L></ul></div>
-        <div><H>Dành cho nhà tuyển dụng</H><ul><L to="/dang-nhap?tab=employer">Đăng ký nhà tuyển dụng</L><L to="/dang-nhap">Đăng nhập</L></ul></div>
-        <div><H>Việc làm theo ngành</H><ul>{cats.map((c) => <L key={c.id} to={`/viec-lam?cat=${encodeURIComponent(c.name)}`}>{c.name}</L>)}</ul></div>
+        <div><H>Ứng viên</H><ul><L to="/viec-lam">Tìm việc làm</L><L to="/cong-ty">Danh sách công ty</L><L to="/cam-nang">Cẩm nang nghề nghiệp</L><L to="/dang-ky">Đăng ký ứng viên</L></ul></div>
+        <div><H>Nhà tuyển dụng</H><ul><L to="/dang-ky?tab=employer">Đăng ký doanh nghiệp</L><L to="/dang-nhap?tab=employer">Đăng nhập nhà tuyển dụng</L><L to="/cam-nang?cat=Dành%20cho%20nhà%20tuyển%20dụng">Kinh nghiệm tuyển dụng</L></ul></div>
+        <div><H>Theo ngành</H><ul>{cats.map((c) => <L key={c.id} to={`/viec-lam?cat=${encodeURIComponent(c.name)}`}>{c.name}</L>)}</ul></div>
+        <div><H>Theo địa điểm</H><ul>{locs.map((c) => <L key={c.id} to={`/viec-lam?loc=${encodeURIComponent(c.name)}`}>Việc làm tại {c.name}</L>)}</ul></div>
       </div>
       <div className="border-t border-white/10">
-        <p className="mx-auto max-w-7xl px-4 py-5 text-xs leading-relaxed text-cream/60 sm:px-6">© 2026 {settings.siteName} — tên thương hiệu tạm thời, <b>chưa được phê duyệt</b>; chưa kiểm tra tên miền hay nhãn hiệu. Đây là bản thiết kế giao diện với dữ liệu mô phỏng, chưa kết nối máy chủ hay cơ sở dữ liệu thật.</p>
+        <p className="mx-auto max-w-7xl px-4 py-5 text-xs leading-relaxed text-cream/60 sm:px-6">© 2026 {settings.siteName} — tên thương hiệu tạm thời, <b>chưa được phê duyệt</b>; chưa kiểm tra tên miền hay nhãn hiệu. Đây là bản thiết kế giao diện UI 2.0 với dữ liệu mô phỏng, chưa kết nối máy chủ hay cơ sở dữ liệu thật. Nội dung cẩm nang là bài viết mẫu.</p>
       </div>
     </footer>
   );
@@ -172,18 +184,21 @@ export function NoAccess({ need }: { need: Exclude<Role, "guest"> }) {
 }
 
 export function AreaLayout({ need }: { need: Exclude<Role, "guest"> }) {
-  const { role, company, jobs, savedIds, applications, user, companies } = useStore();
+  const { role, company, jobs, savedIds, applications, user, companies, reports, myNotifications } = useStore();
   if (role !== need) return <div className="flex min-h-screen flex-col"><ScrollTop /><PreviewBar /><Header /><main className="flex-1"><NoAccess need={need} /></main><Footer /></div>;
+  const mineJobIds = new Set(jobs.filter((j) => j.companyId === company?.id).map((j) => j.id));
   const counts: Record<string, number | undefined> = {
     "/ung-vien/da-luu": savedIds.length,
     "/ung-vien/da-ung-tuyen": applications.filter((a) => a.candidateId === user?.id).length,
     "/nha-tuyen-dung/tin-tuyen-dung": jobs.filter((j) => j.companyId === company?.id).length,
-    "/nha-tuyen-dung/ung-vien": applications.filter((a) => a.status === "new" && jobs.find((j) => j.id === a.jobId)?.companyId === company?.id).length,
+    "/nha-tuyen-dung/ung-vien": applications.filter((a) => a.status === "new" && mineJobIds.has(a.jobId)).length,
     "/quan-tri/kiem-duyet": jobs.filter((j) => j.status === "pending").length,
-    "/quan-tri/nguoi-dung": companies.filter((c) => c.status === "pending").length,
+    "/quan-tri/doanh-nghiep": companies.filter((c) => c.status === "pending").length,
+    "/quan-tri/nguoi-dung": reports.filter((r) => r.status === "open").length,
+    "/ung-vien/tai-khoan": myNotifications.filter((n) => !n.read).length,
   };
-  const items = areaNav[need];
-  const cls = ({ isActive }: { isActive: boolean }) => cn("flex shrink-0 items-center gap-2.5 rounded-ctl px-3.5 py-2.5 text-sm font-medium transition-colors [&>svg]:h-[18px] [&>svg]:w-[18px] hover:bg-butter", isActive ? "bg-butter font-semibold text-ink" : "text-ink-soft");
+  const items = areaNav[need]; const { pathname } = useLocation();
+  const isOn = (n: NavItem) => (n.end ? pathname === n.to : pathname === n.to || pathname.startsWith(n.to + "/") || (n.match ?? []).some((m) => pathname.startsWith(m)));
   return (
     <div className="flex min-h-screen flex-col">
       <ScrollTop /><PreviewBar /><Header />
@@ -196,10 +211,10 @@ export function AreaLayout({ need }: { need: Exclude<Role, "guest"> }) {
             </div>
             <nav aria-label="Menu khu vực" className="no-scrollbar -mx-4 flex gap-1 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
               {items.map((n) => (
-                <NavLink key={n.to} to={n.to} end={n.end} className={cls}>
+                <Link key={n.to} to={n.to} aria-current={isOn(n) ? "page" : undefined} className={cn("flex shrink-0 items-center gap-2.5 rounded-ctl px-3.5 py-2.5 text-sm font-medium transition-colors [&>svg]:h-[18px] [&>svg]:w-[18px] hover:bg-butter", isOn(n) ? "bg-butter font-semibold text-ink" : "text-ink-soft")}>
                   {n.icon}<span className="whitespace-nowrap">{n.label}</span>
                   {!!counts[n.to] && <span className="ml-auto rounded-full bg-gold px-2 py-0.5 text-xs font-bold">{counts[n.to]}</span>}
-                </NavLink>
+                </Link>
               ))}
             </nav>
           </div>

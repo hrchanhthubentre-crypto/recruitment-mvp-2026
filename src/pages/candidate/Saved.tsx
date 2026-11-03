@@ -1,21 +1,30 @@
-import { Bookmark, Eye, MapPin, Wallet, BookmarkX } from "lucide-react";
+import { Bookmark, Eye, MapPin, Wallet, BookmarkX, Search } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Input, Select } from "@/components/ui/form";
 import { CompanyLogo, EmptyState, ErrorState, ListSkeleton, PageHeader, Badge } from "@/components/shared/common";
 import { Meta } from "@/components/shared/job";
 import { useStore } from "@/lib/store";
 import { useFakeLoad } from "@/lib/hooks";
-import { daysLeft, fmtDate, salaryText } from "@/lib/utils";
+import { daysLeft, fmtDate, matches, salaryText } from "@/lib/utils";
 
 export default function Saved() {
   const { savedIds, jobs, companies, toggleSave } = useStore(); const { loading, error, retry } = useFakeLoad(400);
-  const items = savedIds.map((id) => jobs.find((j) => j.id === id)).filter(Boolean) as typeof jobs;
+  const [q, setQ] = useState(""); const [cat, setCat] = useState(""); const [sort, setSort] = useState("");
+  const all = savedIds.map((id) => jobs.find((j) => j.id === id)).filter(Boolean) as typeof jobs;
+  const items = all.filter((j) => (!cat || j.category === cat) && (!q || matches(`${j.title} ${companies.find((c) => c.id === j.companyId)?.name}`, q))).sort((a, b) => sort === "salary" ? b.salaryMax - a.salaryMax : sort === "deadline" ? a.deadline.localeCompare(b.deadline) : 0);
+  const cats = [...new Set(all.map((j) => j.category))];
   const unsave = (id: string, title: string) => { toggleSave(id); toast(`Đã bỏ lưu “${title}”`, { action: { label: "Hoàn tác", onClick: () => toggleSave(id) } }); };
   return (
     <div>
       <PageHeader title="Việc làm đã lưu" desc="Những tin bạn quan tâm, sẵn sàng để quay lại ứng tuyển." />
-      {error ? <ErrorState onRetry={retry} /> : loading ? <ListSkeleton rows={3} /> : items.length === 0 ? (
+      {all.length > 0 && <div className="mb-4 grid gap-3 sm:grid-cols-[1fr_200px_180px]">
+        <label className="relative"><span className="sr-only">Tìm trong việc đã lưu</span><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-mute" /><Input className="pl-10" placeholder="Tìm trong việc đã lưu…" value={q} onChange={(e) => setQ(e.target.value)} /></label>
+        <Select aria-label="Lọc theo ngành" value={cat} onChange={(e) => setCat(e.target.value)}><option value="">Mọi ngành nghề</option>{cats.map((c) => <option key={c}>{c}</option>)}</Select>
+        <Select aria-label="Sắp xếp" value={sort} onChange={(e) => setSort(e.target.value)}><option value="">Lưu gần đây</option><option value="salary">Lương cao nhất</option><option value="deadline">Sắp hết hạn</option></Select></div>}
+      {error ? <ErrorState onRetry={retry} /> : loading ? <ListSkeleton rows={3} /> : all.length > 0 && items.length === 0 ? <EmptyState title="Không có tin phù hợp bộ lọc" action={<Button variant="outline" onClick={() => { setQ(""); setCat(""); }}>Xóa bộ lọc</Button>} /> : items.length === 0 ? (
         <EmptyState icon={<Bookmark className="h-6 w-6" />} title="Bạn chưa lưu việc làm nào" text="Bấm biểu tượng đánh dấu trên tin tuyển dụng để lưu lại và xem sau." action={<Link to="/viec-lam"><Button>Tìm việc làm</Button></Link>} />
       ) : (
         <ul className="space-y-3">

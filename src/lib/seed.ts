@@ -220,3 +220,38 @@ export const seedModLog = (): ModLog[] => [
   { id: "m2", at: daysFromNow(0), jobId: "j22", action: "approved" },
   { id: "m3", at: daysFromNow(-1), jobId: "j07", action: "rejected", reason: "Thiếu quyền lợi" },
 ];
+
+/* ===== UI 2.0: dữ liệu bổ sung (hồ sơ trải đều theo thời gian để biểu đồ có ý nghĩa) ===== */
+const EXTRA: [string, string, string, string[]][] = [
+  ["Trần Gia Hân", "Frontend Developer", "Hà Nội", ["React", "Vue", "CSS"]], ["Nguyễn Đức Long", "Kỹ sư phần mềm", "Hà Nội", ["JavaScript", "Node.js"]], ["Phan Thúy Quỳnh", "Lập trình viên web", "Hải Phòng", ["HTML", "React"]],
+  ["Lý Hoàng Nam", "Backend Developer", "Hà Nội", ["Node.js", "MongoDB"]], ["Bùi Khánh Vy", "QA Engineer", "Hà Nội", ["Kiểm thử", "SQL"]], ["Đặng Minh Quân", "Fullstack Developer", "Đà Nẵng", ["React", "Node.js", "Docker"]],
+  ["Hồ Thanh Tùng", "Lập trình viên", "Hà Nội", ["TypeScript", "Git"]], ["Vương Ngọc Ánh", "Sinh viên CNTT", "Hà Nội", ["Flutter", "Dart"]], ["Châu Bảo Trân", "Business Analyst", "Hà Nội", ["Phân tích", "SQL"]],
+  ["Tạ Quốc Việt", "DevOps", "Hà Nội", ["Docker", "Linux"]], ["Lưu Mỹ Linh", "UI Developer", "Hà Nội", ["React", "Figma"]], ["Kiều Anh Tuấn", "Backend Engineer", "Hà Nội", ["Java", "Spring"]],
+  ["Dương Thu Thảo", "Kiểm thử viên", "Làm việc từ xa", ["Cypress", "Jira"]], ["Mạc Văn Hòa", "Lập trình viên mobile", "Hà Nội", ["Kotlin", "Swift"]], ["Quách Tố Uyên", "Frontend Developer", "Hà Nội", ["React", "Redux"]],
+  ["Trương Hải Đăng", "Software Engineer", "Hà Nội", ["Go", "PostgreSQL"]], ["Ninh Diệu Hương", "QA Lead", "Hà Nội", ["Kiểm thử", "Selenium"]], ["Âu Gia Bình", "Thực tập sinh", "Hà Nội", ["Flutter"]],
+];
+export const seedExtraApplications = (): Application[] => EXTRA.flatMap(([name, headline, location, skills], i) => {
+  const jobs = ["j01", "j02", "j03", "j04", "j08", "j01", "j02", "j03"];
+  const n = i % 3 === 0 ? 2 : 1;
+  return Array.from({ length: n }, (_, k) => {
+    const jobId = jobs[(i + k * 3) % jobs.length]; const ago = 2 + ((i * 7 + k * 11) % 56);
+    const st: Application["status"] = ago > 40 ? "closed" : ago > 24 ? (i % 2 ? "interview" : "reviewing") : ago > 8 ? (i % 3 ? "reviewing" : "new") : "new";
+    return mk(`ax${i}-${k}`, jobId, `xc${i}`, name, `${name.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/gi, "d").toLowerCase().replace(/\s+/g, ".")}@mail.example`, headline, ago, st, 1 + (i % 6), skills, location);
+  });
+});
+
+import type { Notification, Report, Prefs } from "./types";
+export const defaultPrefs = (): Prefs => ({ emailStatus: true, emailJobs: true, emailNews: false, inApp: true });
+export const seedNotifications = (): Notification[] => [
+  { id: "n1", userId: "u-cand", at: daysFromNow(0), kind: "status", read: false, title: "Hồ sơ được mời phỏng vấn", body: "Sao Mai Tech mời bạn phỏng vấn vị trí Lập trình viên React (Frontend). Nhà tuyển dụng sẽ liên hệ qua số điện thoại bạn đã cung cấp." },
+  { id: "n2", userId: "u-cand", at: daysFromNow(-1), kind: "apply", read: false, title: "Đã gửi hồ sơ thành công", body: "Hồ sơ ứng tuyển vị trí Chuyên viên quảng cáo hiệu suất đã được gửi tới Phương Nam Digital." },
+  { id: "n3", userId: "u-cand", at: daysFromNow(-3), kind: "status", read: true, title: "Hồ sơ đang được xem xét", body: "Tre Việt Studio đang xem xét hồ sơ vị trí Thiết kế trải nghiệm người dùng (UX/UI)." },
+  { id: "n4", userId: "u-cand", at: daysFromNow(-5), kind: "job", read: true, title: "Việc làm phù hợp với bạn", body: "Có 3 tin mới thuộc ngành Công nghệ thông tin tại Hà Nội vừa được đăng." },
+  { id: "n5", userId: "u-cand", at: daysFromNow(-14), kind: "status", read: true, title: "Quy trình tuyển dụng đã kết thúc", body: "Hải Đăng Logistics đã kết thúc quy trình cho vị trí Điều phối viên vận chuyển." },
+];
+export const seedReports = (): Report[] => [
+  { id: "r1", targetType: "job", targetId: "j31", targetLabel: "Nhân viên phục vụ bàn (ca xoay)", reason: "Thông tin không chính xác", detail: "Mức lương trong tin khác với mức được trao đổi khi liên hệ.", reporter: "Lê Quang Huy", at: daysFromNow(-1), status: "open" },
+  { id: "r2", targetType: "job", targetId: "j11", targetLabel: "Công nhân vận hành máy đóng gói", reason: "Nghi ngờ lừa đảo", detail: "Tin yêu cầu nộp phí hồ sơ trước khi phỏng vấn.", reporter: "Phạm Thu Hà", at: daysFromNow(-2), status: "open" },
+  { id: "r3", targetType: "user", targetId: "u-c4", targetLabel: "Đỗ Gia Bảo", reason: "Spam hồ sơ", detail: "Tài khoản nộp hàng loạt hồ sơ giống nhau trong thời gian ngắn.", reporter: "Hệ thống (mẫu)", at: daysFromNow(-6), status: "resolved", resolution: "Đã khóa tài khoản tạm thời." },
+  { id: "r4", targetType: "job", targetId: "j22", targetLabel: "Chuyên viên quảng cáo hiệu suất", reason: "Nội dung trùng lặp", detail: "Tin giống một tin đăng trước đó.", reporter: "Vũ Khánh Linh", at: daysFromNow(-8), status: "dismissed", resolution: "Đã kiểm tra, hai tin thuộc hai chi nhánh khác nhau." },
+];

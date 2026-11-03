@@ -1,4 +1,4 @@
-import { BriefcaseBusiness, CalendarClock, ChevronRight, FileUp, GraduationCap, MapPin, Users, Wallet, Building2, CheckCircle2, Clock, Info, AlertCircle } from "lucide-react";
+import { Flag, BriefcaseBusiness, CalendarClock, ChevronRight, FileUp, GraduationCap, MapPin, Users, Wallet, Building2, CheckCircle2, Clock, Info, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -62,10 +62,29 @@ function ApplyDialog({ jobId, open, onOpenChange }: { jobId: string; open: boole
   );
 }
 
+const REPORT_REASONS = ["Thông tin không chính xác", "Nghi ngờ lừa đảo", "Nội dung không phù hợp", "Nội dung trùng lặp", "Lý do khác"];
+function ReportDialog({ job, open, onOpenChange }: { job: { id: string; title: string }; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const { addReport } = useStore(); const [reason, setReason] = useState(""); const [detail, setDetail] = useState(""); const [err, setErr] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false);
+  const submit = async () => {
+    const e: Record<string, string> = {}; if (!reason) e.reason = "Vui lòng chọn lý do."; if (detail.trim().length < 10) e.detail = "Vui lòng mô tả ít nhất 10 ký tự.";
+    setErr(e); if (Object.keys(e).length) return; setBusy(true);
+    try { await addReport({ targetType: "job", targetId: job.id, targetLabel: job.title, reason, detail: detail.trim() }); toast.success("Đã gửi báo cáo tới quản trị viên (mô phỏng)"); setReason(""); setDetail(""); onOpenChange(false); }
+    catch (x) { toast.error("Chưa gửi được báo cáo", { description: (x as Error).message }); } finally { setBusy(false); }
+  };
+  return (
+    <Modal open={open} onOpenChange={onOpenChange} title="Báo cáo tin tuyển dụng" description={job.title} footer={<><Button variant="outline" onClick={() => onOpenChange(false)}>Hủy</Button><Button loading={busy} onClick={submit}>Gửi báo cáo</Button></>}>
+      <div className="space-y-4">
+        <Field label="Lý do" required error={err.reason}>{(p) => <select {...p} value={reason} onChange={(e) => { setReason(e.target.value); setErr({}); }} className="h-11 w-full rounded-ctl border border-line bg-paper px-3 text-sm"><option value="">Chọn lý do</option>{REPORT_REASONS.map((r) => <option key={r}>{r}</option>)}</select>}</Field>
+        <Field label="Mô tả chi tiết" required error={err.detail}>{(p) => <Textarea rows={4} value={detail} onChange={(e) => { setDetail(e.target.value); setErr({}); }} {...p} />}</Field>
+      </div>
+    </Modal>
+  );
+}
+
 export default function JobDetail() {
   const { id } = useParams(); const nav = useNavigate();
   const { jobs, companies, role, user, applications, company: myCo, switchRole } = useStore();
-  const [apply, setApply] = useState(false); const [login, setLogin] = useState(false);
+  const [apply, setApply] = useState(false); const [login, setLogin] = useState(false); const [report, setReport] = useState(false);
   const job = jobs.find((j) => j.id === id);
   const co = job && companies.find((c) => c.id === job.companyId);
   const canPreview = !!job && (role === "admin" || (role === "employer" && myCo?.id === job.companyId));
@@ -91,6 +110,7 @@ export default function JobDetail() {
       </nav>
       {job.status !== "approved" && <div role="status" className="mb-5 flex flex-wrap items-center gap-2 rounded-card border border-gold bg-butter p-3.5 text-sm"><Info className="h-4 w-4" />Bạn đang xem trước tin ở trạng thái <JobStatusBadge s={job.status} /> — khách truy cập chưa nhìn thấy tin này.</div>}
 
+      {(job.status === "closed" || (expired && job.status === "approved")) && <div role="alert" className="mb-5 flex items-start gap-3 rounded-card border border-bad/30 bg-bad-bg p-4 text-sm text-bad"><AlertCircle className="mt-0.5 h-5 w-5 shrink-0" /><p><b>{job.status === "closed" ? "Tin tuyển dụng này đã đóng." : "Đã quá hạn nộp hồ sơ."}</b> Bạn vẫn có thể xem nội dung, nhưng không thể ứng tuyển. <Link to="/viec-lam" className="font-semibold underline">Xem việc làm tương tự</Link></p></div>}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-8">
         <div className="space-y-6">
           <section className="rounded-card border border-line bg-paper p-5 shadow-soft sm:p-7">
@@ -126,6 +146,7 @@ export default function JobDetail() {
             <dl className="mt-4 space-y-2 text-sm text-ink-soft"><div className="flex gap-2"><Users className="mt-0.5 h-4 w-4 shrink-0 text-ink-mute" />{co.size}</div><div className="flex gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-ink-mute" />{co.address}, {co.city}</div></dl>
             <Link to={`/cong-ty/${co.id}`}><Button variant="outline" className="mt-5 w-full">Xem trang doanh nghiệp</Button></Link>
           </section>
+          {role !== "admin" && role !== "employer" && <button type="button" onClick={() => setReport(true)} className="flex w-full items-center justify-center gap-2 rounded-ctl py-2 text-sm text-ink-mute hover:text-bad"><Flag className="h-4 w-4" />Báo cáo tin có dấu hiệu vi phạm</button>}
         </aside>
       </div>
 
@@ -142,6 +163,7 @@ export default function JobDetail() {
       </div>
 
       {role === "candidate" && apply && <ApplyDialog jobId={job.id} open={apply} onOpenChange={setApply} />}
+      <ReportDialog job={job} open={report} onOpenChange={setReport} />
       <Modal open={login} onOpenChange={setLogin} title="Đăng nhập để ứng tuyển" description="Bạn cần tài khoản ứng viên để gửi hồ sơ."
         footer={<><Button variant="outline" onClick={() => { setLogin(false); nav("/dang-nhap"); }}>Đến trang đăng nhập</Button><Button onClick={() => { switchRole("candidate"); setLogin(false); toast.success("Đang xem với vai trò Ứng viên (mô phỏng)"); setApply(true); }}>Vào bằng ứng viên mô phỏng</Button></>}>
         <p className="text-sm text-ink-soft">Trong bản xem trước, bạn có thể dùng tài khoản ứng viên mẫu để trải nghiệm luồng ứng tuyển — không có hồ sơ thật nào được gửi đi.</p>

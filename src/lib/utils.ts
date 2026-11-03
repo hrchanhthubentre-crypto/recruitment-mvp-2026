@@ -26,3 +26,17 @@ export const uid = (p: string) => `${p}-${Math.random().toString(36).slice(2, 8)
 export const fmtSize = (b: number) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 export const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.trim());
 export const isPhone = (s: string) => /^(0|\+84)\d{9,10}$/.test(s.replace(/[\s.]/g, ""));
+import type { Job, Profile } from "./types";
+export function profileCompletion(p: Profile) {
+  const checks = [p.fullName, p.phone, p.summary, p.skills.length, p.experiences.length, p.education.length, p.desiredTitle, p.cv];
+  return Math.round((checks.filter(Boolean).length / checks.length) * 100);
+}
+/** Gợi ý việc làm mẫu: chấm điểm theo ngành, địa điểm và kỹ năng của hồ sơ. */
+export function recommend(p: Profile, jobs: Job[], appliedIds: string[], n = 4) {
+  return jobs.filter((j) => j.status === "approved" && !appliedIds.includes(j.id)).map((j) => {
+    let score = 0; if (p.desiredCategory && j.category === p.desiredCategory) score += 3; if (p.desiredLocation && j.location === p.desiredLocation) score += 2;
+    const hay = normalize(`${j.title} ${j.description.join(" ")} ${j.requirements.join(" ")}`); p.skills.forEach((s) => { if (hay.includes(normalize(s))) score += 1; });
+    if (p.desiredTitle && normalize(j.title).includes(normalize(p.desiredTitle.split(" ").slice(-1)[0] ?? ""))) score += 1;
+    return { j, score };
+  }).sort((a, b) => b.score - a.score).slice(0, n);
+}
