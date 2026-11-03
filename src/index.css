@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+/* ===== Design tokens — bảng màu vàng nhạt (thương hiệu tạm thời, chưa phê duyệt) ===== */
+@theme {
+  --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --color-cream: #fffcf3;      /* nền trang */
+  --color-butter: #fff4c7;     /* vàng nhạt chủ đạo */
+  --color-butter-soft: #fff9e0;
+  --color-gold: var(--accent, #f4ce73);       /* vàng nhấn */
+  --color-gold-strong: var(--accent-strong, #ebc05a);
+  --color-gold-ink: #7a5600;   /* chữ vàng đậm, đạt tương phản AA trên nền kem */
+  --color-ink: #30343b;        /* xám than */
+  --color-ink-soft: #565b65;
+  --color-ink-mute: #6b7079;
+  --color-line: #ece2bd;
+  --color-line-soft: #f3ecd0;
+  --color-paper: #ffffff;
+
+  --color-ok: #2b7a4b;   --color-ok-bg: #e2f2e8;
+  --color-bad: #b3372f;  --color-bad-bg: #fbe5e2;
+  --color-info: #2a6598; --color-info-bg: #e3eef8;
+  --color-neutral-bg: #eeeae0;
+
+  --radius-card: var(--r-card, 14px);
+  --radius-ctl: var(--r-ctl, 10px);
+  --shadow-soft: 0 1px 2px rgb(48 52 59 / 0.04), 0 4px 14px rgb(48 52 59 / 0.05);
+  --shadow-pop: 0 10px 30px rgb(48 52 59 / 0.12);
+}
+
+:root { --accent: #f4ce73; --accent-strong: #ebc05a; --r-card: 14px; --r-ctl: 10px; }
+
+html { scroll-behavior: smooth; }
+body { background: var(--color-cream); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+::selection { background: var(--color-butter); }
+:focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+@keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+.skeleton { background: linear-gradient(90deg, #f3ecd0 25%, #fbf5dc 50%, #f3ecd0 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+@keyframes fade-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+.fade-in { animation: fade-in .25s ease-out; }
+@keyframes overlay-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slide-in-right { from { transform: translateX(100%); } to { transform: none; } }
+@keyframes pop-in { from { opacity: 0; transform: translate(-50%, -48%) scale(.98); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+.ov { animation: overlay-in .18s ease-out; }
+.drawer { animation: slide-in-right .24s cubic-bezier(.2,.8,.2,1); }
+.modal { animation: pop-in .18s ease-out; }
+.no-scrollbar::-webkit-scrollbar { display: none; } .no-scrollbar { scrollbar-width: none; }
+
+/* Lưới mặc định 1 cột co giãn được (tránh tràn ngang trên di động khi chưa khai báo số cột) */
+@layer base { .grid { grid-template-columns: minmax(0, 1fr); } }
